@@ -1,6 +1,8 @@
-export default class Controller {
+import { constants } from "./constants.js"
 
+export default class Controller {
     #users = new Map()
+    #rooms = new Map()
 
     constructor({ socketServer }) {
         this.socketServer = socketServer
@@ -10,7 +12,7 @@ export default class Controller {
         const { id } = socket
         console.log('Connection stablished with', id)
         const userData = { id, socket }
-        
+
         this.#updateGlobalUserData(id, userData)
 
         socket.on('data', this.#onSocketData(id))
@@ -18,21 +20,64 @@ export default class Controller {
         socket.on('end', this.#onSocketClosed(id))
     }
 
+    async joinRoom(socketId, data) {
+        const userData = data
+        console.log(`${userData.username} joined!`, [socketId])
+        const user = this.#updateGlobalUserData(socketId, userData)
+        const { roomId } = userData
+        const users = this.#joinUserOnRoom(roomId, user)
+        const currentUsers = Array.from(users.values()).map(({ id, username }) => ({ username, id }))
+        this.socketServer.sendMessage(user.socket, constants.events.UPDATE_USERS, currentUsers)
+
+        this.broadcast({
+            socketId,
+            roomId,
+            event: constants.events.NEW_USER_CONNECTED,
+            message:
+            {
+                id: socketId,
+                username: userData.username
+            }
+        })
+    }
+
+    broadcast({ socketId, event, message, roomId, includeCurrentSocket = false }) {
+        const usersOnRoom = this.#rooms.get(roomId)
+
+        for (const [key, user] of usersOnRoom) {
+            if (!includeCurrentSocket && key === socketId) continue;
+            this.socketServer.sendMessage(user.socket, event, message)
+        }
+    }
+
+    #joinUserOnRoom(roomId, user) {
+        const usersOnRoom = this.#rooms.get(roomId) ?? new Map()
+        usersOnRoom.set(user.id, user)
+        this.#rooms.set(roomId, usersOnRoom)
+        return usersOnRoom
+    }
+
     #onSocketData(id) {
         return data => {
-            console.log('data', data.toString())
+            try {
+                const { event, message } = JSON.parse(data)
+                this[event](id, message)
+            }
+            catch (error) {
+                console.error(`Wrong event format!`, data.toString())
+            }
         }
     }
 
     #onSocketError(id) {
         return data => {
-            console.log('error', data.toString())
+            console.log('error', id)
         }
     }
 
     #onSocketClosed(id) {
         return data => {
-            console.log('closed', data.toString())
+            console.log('closed', id)
         }
     }
 
