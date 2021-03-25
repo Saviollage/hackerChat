@@ -16,7 +16,7 @@ export default class Controller {
         this.#updateGlobalUserData(id, userData)
 
         socket.on('data', this.#onSocketData(id))
-        socket.on('error', this.#onSocketError(id))
+        socket.on('error', this.#onSocketClosed(id))
         socket.on('end', this.#onSocketClosed(id))
     }
 
@@ -50,6 +50,18 @@ export default class Controller {
         }
     }
 
+
+    message(socketId, data) {
+        const { username, roomId } = this.#users.get(socketId)
+        this.broadcast({
+            roomId,
+            socketId,
+            event: constants.events.MESSAGE,
+            message: { username, message: data },
+            includeCurrentSocket: true
+        })
+    }
+
     #joinUserOnRoom(roomId, user) {
         const usersOnRoom = this.#rooms.get(roomId) ?? new Map()
         usersOnRoom.set(user.id, user)
@@ -69,15 +81,24 @@ export default class Controller {
         }
     }
 
-    #onSocketError(id) {
-        return data => {
-            console.log('error', id)
-        }
+    #logoutUser(id, roomId) {
+        this.#users.delete(id)
+        const usersOnRoom = this.#rooms.get(roomId)
+        usersOnRoom.delete(id)
+        this.#rooms.set(roomId, usersOnRoom)
     }
 
     #onSocketClosed(id) {
-        return data => {
-            console.log('closed', id)
+        return _ => {
+            const { username, roomId } = this.#users.get(id)
+            console.log(`User: ${username} disconnected from ${roomId}`)
+            this.#logoutUser(id, roomId)
+            this.broadcast({
+                roomId,
+                message: { id, username },
+                socketId: id,
+                event: constants.events.USER_DISCONNECTED
+            })
         }
     }
 
