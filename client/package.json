@@ -9,7 +9,10 @@
     "start": "node index.js",
     "user01": "node index.js --username saviollage --room sala01 --hostUri http://localhost:8080",
     "user02": "node index.js --username saviollage02 --room sala01 --hostUri http://localhost:8080",
-    "user03": "node index.js --username saviollage03 --room sala02 --hostUri http://localhost:8080"
+    "user03": "node index.js --username saviollage03 --room sala02 --hostUri https://hackerchat-saviollage.herokuapp.com/",
+    "user04": "node index.js --username saviollage04 --room sala02 --hostUri https://hackerchat-saviollage.herokuapp.com/",
+    "user05": "node index.js --username saviollage05 --room sala03",
+    "user06": "node index.js --username saviollage06 --room sala03"
   },
   "keywords": [],
   "author": "",

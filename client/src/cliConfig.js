@@ -1,5 +1,7 @@
+const prodUrl = 'https://hackerchat-saviollage.herokuapp.com/'
+
 export default class CliConfig {
-    constructor({ username, hostUri, room }) {
+    constructor({ username, hostUri = prodUrl, room }) {
         this.username = username
         this.room = room
         const { hostname, port, protocol } = new URL(hostUri)
